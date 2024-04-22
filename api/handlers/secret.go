@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -72,6 +73,59 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+// curl -X GET http://localhost:8080/secrets?offset=0&limit=10 -H "Content-Type: application/json" -H "Authorization: token"
+func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil {
+		http.Error(w, "Invalid offset parameter", http.StatusBadRequest)
+		return
+	}
+
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		http.Error(w, "Invalid limit parameter", http.StatusBadRequest)
+		return
+	}
+
+	secretName := r.URL.Query().Get("secret_name")
+
+	var rows *sql.Rows
+	if secretName != "" {
+		rows, err = h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ? ORDER BY secret_name LIMIT ? OFFSET ?`, secretName, limit, offset)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		rows, err = h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets ORDER BY secret_name LIMIT ? OFFSET ?`, limit, offset)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var secrets []Secret
+	for rows.Next() {
+		var s Secret
+		if err := rows.Scan(&s.ID, &s.SecretName, &s.Key, &s.Value, &s.CreatedAt, &s.UpdatedAt); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		secrets = append(secrets, s)
+	}
+
+	if err := json.NewEncoder(w).Encode(secrets); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // curl -X GET http://localhost:8080/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"

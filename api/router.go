@@ -14,12 +14,16 @@ func New(log *slog.Logger, db *sql.DB) *routegroup.Bundle {
 	router := routegroup.New(http.NewServeMux())
 	router.Use(middleware.ServeJSON, middleware.Auth)
 
-	secretRouter := router.Mount("/secret")
+	v1Router := router.Mount("/api/v1")
+
+	secretRouter := v1Router.Mount("/secret")
 	secretHandler := secret.NewHandler(db)
 	secretRouter.HandleFunc("PUT /*", secretHandler.AddSecret)
 	secretRouter.HandleFunc("GET /*", secretHandler.GetSecret)
 	secretRouter.HandleFunc("DELETE /*", secretHandler.DeleteSecretKeyAndValue)
 	secretRouter.HandleFunc("POST /*", secretHandler.DeleteSecret)
+
+	v1Router.HandleFunc("GET /secrets", secretHandler.GetAllSecrets)
 
 	return router
 }

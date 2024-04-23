@@ -12,7 +12,7 @@ import (
 
 func New(log *slog.Logger, db *sql.DB) *routegroup.Bundle {
 	router := routegroup.New(http.NewServeMux())
-	router.Use(middleware.ServeJSON, middleware.Auth)
+	router.Use(middleware.Cors, middleware.ServeJSON, middleware.Auth)
 
 	v1Router := router.Mount("/api/v1")
 

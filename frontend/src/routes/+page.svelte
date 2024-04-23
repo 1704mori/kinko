@@ -82,6 +82,7 @@
 	});
 </script>
 
+{#if showCreateDialog}
 <Dialog bind:showModal={showCreateDialog} class="w-96" on:submit={handleSubmit}>
 	<div slot="header">Secrets</div>
 
@@ -132,6 +133,7 @@
 		<Button type="submit">Create Secret</Button>
 	</div>
 </Dialog>
+{/if}
 
 <div class="flex items-center justify-center w-full">
 	{#if !!data.props.secrets.length}
@@ -206,6 +208,11 @@
 					};
 				})}
 			/>
+		</div>
+	
+	{else}
+		<div class="flex items-center justify-center w-full">
+			<p class="text-center">No secrets found</p>
 		</div>
 	{/if}
 </div>

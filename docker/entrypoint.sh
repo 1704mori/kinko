@@ -1,5 +1,5 @@
 #!/bin/sh
-./api/kinko &
+/app/api/kinko &
 
 node frontend/index.js
 

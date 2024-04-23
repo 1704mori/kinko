@@ -134,7 +134,7 @@
 </Dialog>
 
 <div class="flex items-center justify-center w-full">
-	{#if data.props}
+	{#if !!data.props.secrets.length}
 		<div class="flex flex-col gap-2">
 			<div class="flex items-center">
 				<SelectSecret

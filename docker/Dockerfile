@@ -11,7 +11,7 @@ COPY internal /app/internal/
 
 RUN CGO_ENABLED=1 GOOS=linux go build -o kinko ./cmd/main/main.go
 
-
+RUN apk add --no-cache nodejs npm
 
 COPY ./frontend /app/frontend
 

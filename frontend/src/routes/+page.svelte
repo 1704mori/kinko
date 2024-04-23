@@ -136,7 +136,7 @@
 {/if}
 
 <div class="flex items-center justify-center w-full">
-	{#if !!data.props.secrets.length}
+	{#if data.props?.secrets && data.props.secrets.length > 0}
 		<div class="flex flex-col gap-2">
 			<div class="flex items-center">
 				<SelectSecret

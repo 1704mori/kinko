@@ -19,6 +19,6 @@ WORKDIR /app
 COPY --from=go-builder /app/kinko /app/api/
 COPY --from=svelte-builder /app/build /app/frontend/
 
-COPY ./entrypoint.sh /app
+COPY ./docker/entrypoint.sh /app
 
 CMD ["/bin/sh", "entrypoint.sh"]

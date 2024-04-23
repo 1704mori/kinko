@@ -210,9 +210,10 @@
 			/>
 		</div>
 	
-	{else}
-		<div class="flex items-center justify-center w-full">
+	{:else}
+		<div class="flex flex-col items-center justify-center w-full">
 			<p class="text-center">No secrets found</p>
+			<Button on:click={() => (showCreateDialog = true)}>Create Secret</Button>
 		</div>
 	{/if}
 </div>

@@ -42,7 +42,7 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secretName := strings.TrimPrefix(r.URL.Path, "/secret/")
+	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	for key, value := range secrets {
 		var id string
 		err := tx.QueryRow(`SELECT id FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key).Scan(&id)
@@ -130,7 +130,7 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 
 // curl -X GET http://localhost:8080/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
-	secretName := strings.TrimPrefix(r.URL.Path, "/secret/")
+	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	rows, err := h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ?`, secretName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -156,7 +156,7 @@ func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 
 // curl -X DELETE http://localhost:8080/secret/secretName?key=key -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request) {
-	secretName := strings.TrimPrefix(r.URL.Path, "/secret/")
+	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	key := r.URL.Query().Get("key")
 
 	tx, err := h.db.Begin()
@@ -165,9 +165,23 @@ func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	_, err = tx.Exec(`DELETE FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key)
+	res, err := tx.Exec(`DELETE FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		_ = tx.Rollback()
+		return
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		_ = tx.Rollback()
+		return
+	}
+
+	if rowsAffected == 0 {
+		http.Error(w, "No rows affected", http.StatusNotFound)
+		_ = tx.Rollback()
 		return
 	}
 
@@ -181,7 +195,7 @@ func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request
 
 // curl -X POST http://localhost:8080/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) DeleteSecret(w http.ResponseWriter, r *http.Request) {
-	secretName := strings.TrimPrefix(r.URL.Path, "/secret/")
+	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 
 	tx, err := h.db.Begin()
 	if err != nil {

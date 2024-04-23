@@ -1,5 +1,7 @@
-# Build Golang application
 FROM golang:1.22.2-alpine AS go-builder
+
+RUN apk --no-cache add build-base
+
 WORKDIR /app
 
 COPY go.mod go.sum ./

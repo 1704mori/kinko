@@ -1,5 +1,5 @@
 # Build Golang application
-FROM golang:1.22.2 AS go-builder
+FROM golang:1.22.2-alpine AS go-builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -11,7 +11,7 @@ COPY internal /app/internal/
 
 RUN CGO_ENABLED=1 GOOS=linux go build -o kinko ./cmd/main/main.go
 
-RUN apk add --no-cache nodejs npm
+
 
 COPY ./frontend /app/frontend
 

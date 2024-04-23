@@ -3,12 +3,19 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
-RUN CGO_ENABLED=1 GOOS=linux go build -o kinko .
+
+COPY api /app/api/
+COPY cmd /app/cmd/
+COPY internal /app/internal/
+
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o kinko ./cmd/main/main.go
 
 FROM node:20.12.2-alpine AS svelte-builder
 WORKDIR /app
 
 COPY ./frontend /app
+
+RUN mv .env.example .env
 
 RUN npm install
 RUN npm run build

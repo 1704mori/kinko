@@ -34,7 +34,7 @@ func writeError(w http.ResponseWriter, err string, status int) {
 	json.NewEncoder(w).Encode(map[string]string{"message": err})
 }
 
-// curl -X PUT http://localhost:8080/secret/secretName -H "Content-Type: application/json" -H "Authorization: token" -d '{"key1": "value1", "key2": "value2"}'
+// curl -X PUT http://localhost:8080/api/v1/secret/secretName -H "Content-Type: application/json" -H "Authorization: token" -d '{"key1": "value1", "key2": "value2"}'
 func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 	var secrets map[string]string
 	if err := json.NewDecoder(r.Body).Decode(&secrets); err != nil {
@@ -54,7 +54,7 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 		err := tx.QueryRow(`SELECT id FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				id = ulid.MustNew(ulid.Now(), nil).String()
+				id = ulid.Make().String()
 				_, err = tx.Exec(`INSERT INTO secrets (id, secret_name, key, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, id, secretName, key, value, time.Now(), time.Now())
 				if err != nil {
 					writeError(w, err.Error(), http.StatusInternalServerError)
@@ -78,10 +78,11 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Secret added"})
 }
 
-// curl -X GET http://localhost:8080/secrets?offset=0&limit=10 -H "Content-Type: application/json" -H "Authorization: token"
+// curl -X GET http://localhost:8080/api/v1/secrets?offset=0&limit=10 -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
 	if err != nil {
@@ -134,7 +135,7 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// curl -X GET http://localhost:8080/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
+// curl -X GET http://localhost:8080/api/v1/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	rows, err := h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ?`, secretName)
@@ -160,7 +161,7 @@ func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// curl -X DELETE http://localhost:8080/secret/secretName?key=key -H "Content-Type: application/json" -H "Authorization: token"
+// curl -X DELETE http://localhost:8080/api/v1/secret/secretName?key=key -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request) {
 	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	key := r.URL.Query().Get("key")
@@ -196,10 +197,11 @@ func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Secret key and value deleted"})
 }
 
-// curl -X POST http://localhost:8080/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
+// curl -X POST http://localhost:8080/api/v1/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) DeleteSecret(w http.ResponseWriter, r *http.Request) {
 	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 
@@ -220,5 +222,7 @@ func (h *Handler) DeleteSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	// w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Secret deleted"})
 }

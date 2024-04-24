@@ -91,7 +91,7 @@ func main() {
 }
 
 func SvelteKitHandler(path string) http.HandlerFunc {
-	filesystem := http.Dir("frontend/build")
+	filesystem := http.Dir("frontend")
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, path)

@@ -11,8 +11,8 @@ function createSecretsStore(): SecretsStore {
   const secrets = writable<Secret[]>([]);
 
   const fetchSecrets = async (selectedSecret?: string): Promise<void> => {
-    const baseUrl = PUBLIC_API_URL;
-    const token = PUBLIC_API_TOKEN;
+    const baseUrl = PUBLIC_API_URL || "__API_URL__";
+    const token = PUBLIC_API_TOKEN || "__API_TOKEN";
     if (!baseUrl || !token) {
       console.error('API URL or token is missing');
       return;

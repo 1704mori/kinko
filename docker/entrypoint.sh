@@ -5,7 +5,7 @@
 
 #!/bin/sh
 
-DIRECTORY="/app/frontend/"
+DIRECTORY="/app/frontend/_app/immutable/nodes/"
 
 if [ -d "$DIRECTORY" ]; then
   for file in ${DIRECTORY}*.js; do

@@ -28,12 +28,12 @@ func main() {
 
 	flag.Parse()
 
-	if *authToken == "" && os.Getenv("API_TOKEN") == "" {
+	if *authToken == "" && os.Getenv("PUBLIC_API_TOKEN") == "" {
 		panic("flag auth-token is required or set API_TOKEN environment variable")
 	}
 
 	if *authToken == "" {
-		*authToken = os.Getenv("API_TOKEN")
+		*authToken = os.Getenv("PUBLIC_API_TOKEN")
 	}
 
 	config.NewCofig(&config.ConfigParams{

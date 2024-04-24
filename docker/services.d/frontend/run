@@ -1,4 +1,0 @@
-#!/usr/bin/execlineb -P
-with-contenv
-s6-setuidgid app
-node /app/frontend/build/index.js

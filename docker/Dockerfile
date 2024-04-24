@@ -1,7 +1,4 @@
-FROM golang:1.22.2-alpine AS go-builder
-
-RUN apk --no-cache add build-base
-
+FROM golang:1.22.2 AS go-builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -13,26 +10,30 @@ COPY internal /app/internal/
 
 RUN CGO_ENABLED=1 GOOS=linux go build -o kinko ./cmd/main/main.go
 
-RUN apk add --no-cache nodejs npm
+FROM node:20.12.2-alpine AS svelte-builder
+WORKDIR /app
 
-COPY ./frontend /app/frontend
+COPY ./frontend /app
 
-RUN cd frontend && mv .env.example .env
+RUN mv .env.example .env
 
-RUN cd frontend && npm install
-RUN cd frontend && npm run build
+RUN npm install
+RUN npm run build
 
-RUN cp package.json package-lock.json /app/frontend/build/
-RUN cd /app/build && npm ci --omit=dev
+RUN cp package.json package-lock.json /app/build/
+RUN cd /app/build && npm install --only=production
 
-RUN apk add --no-cache curl && \
-    curl -L -s https://github.com/just-containers/s6-overlay/releases/download/v3.1.6.2/s6-overlay-amd64.tar.gz | tar xvzf - -C /
+FROM node:20.12.2-alpine
+WORKDIR /app
 
 RUN apk --no-cache add ca-certificates wget \
     && wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub \
     && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.34-r0/glibc-2.34-r0.apk \
     && apk add --force-overwrite glibc-2.34-r0.apk
 
-COPY ./docker/services.d /etc/services.d
+COPY --from=go-builder /app/kinko /app/api/
+COPY --from=svelte-builder /app/build /app/frontend/
 
-ENTRYPOINT ["/init"]
+COPY ./docker/entrypoint.sh /app
+
+CMD ["/bin/sh", "entrypoint.sh"]

@@ -20,8 +20,8 @@ RUN mv .env.example .env
 RUN npm install
 RUN npm run build
 
-RUN cp package.json package-lock.json /app/build/
-RUN cd /app/build && npm install --only=production
+RUN cp ./frontend/package.json ./frontend/package-lock.json /app/build/
+RUN cd /app/frontend.build && npm ci --omit=dev
 
 FROM node:20.12.2-alpine
 WORKDIR /app

@@ -12,7 +12,7 @@ function createSecretsStore(): SecretsStore {
 
   const fetchSecrets = async (selectedSecret?: string): Promise<void> => {
     const baseUrl = PUBLIC_API_URL || "__API_URL__";
-    const token = PUBLIC_API_TOKEN || "__API_TOKEN";
+    const token = PUBLIC_API_TOKEN || "__API_TOKEN__";
     if (!baseUrl || !token) {
       console.error('API URL or token is missing');
       return;

@@ -25,8 +25,8 @@ func main() {
 	authToken := flag.String("auth-token", "", "Authentication token (required)")
 	port := flag.Int("port", 8080, "Port number")
 	host := flag.String("host", "0.0.0.0", "Host address")
-	authUser := flag.String("auth-user", "admin", "Basic Auth username")
-	authPasswd := flag.String("auth-passwd", "admin", "Basic Auth password")
+	authUser := flag.String("auth-user", "", "Basic Auth username")
+	authPasswd := flag.String("auth-passwd", "", "Basic Auth password")
 
 	flag.Parse()
 

@@ -28,17 +28,23 @@ type Secret struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+func writeError(w http.ResponseWriter, err string, status int) {
+	w.WriteHeader(status)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": err})
+}
+
 // curl -X PUT http://localhost:8080/secret/secretName -H "Content-Type: application/json" -H "Authorization: token" -d '{"key1": "value1", "key2": "value2"}'
 func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 	var secrets map[string]string
 	if err := json.NewDecoder(r.Body).Decode(&secrets); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	tx, err := h.db.Begin()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -51,24 +57,24 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 				id = ulid.MustNew(ulid.Now(), nil).String()
 				_, err = tx.Exec(`INSERT INTO secrets (id, secret_name, key, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, id, secretName, key, value, time.Now(), time.Now())
 				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
+					writeError(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				continue
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		_, err = tx.Exec(`UPDATE secrets SET value = ?, updated_at = ? WHERE id = ?`, value, time.Now(), id)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -79,13 +85,13 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
 	if err != nil {
-		http.Error(w, "Invalid offset parameter", http.StatusBadRequest)
+		writeError(w, "Invalid offset parameter", http.StatusBadRequest)
 		return
 	}
 
 	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
 	if err != nil {
-		http.Error(w, "Invalid limit parameter", http.StatusBadRequest)
+		writeError(w, "Invalid limit parameter", http.StatusBadRequest)
 		return
 	}
 
@@ -95,19 +101,19 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 	if secretName != "" {
 		rows, err = h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ? ORDER BY secret_name LIMIT ? OFFSET ?`, secretName, limit, offset)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
 		rows, err = h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets ORDER BY secret_name LIMIT ? OFFSET ?`, limit, offset)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -116,14 +122,14 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s Secret
 		if err := rows.Scan(&s.ID, &s.SecretName, &s.Key, &s.Value, &s.CreatedAt, &s.UpdatedAt); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		secrets = append(secrets, s)
 	}
 
 	if err := json.NewEncoder(w).Encode(secrets); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -133,7 +139,7 @@ func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	rows, err := h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ?`, secretName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -142,14 +148,14 @@ func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s Secret
 		if err := rows.Scan(&s.ID, &s.SecretName, &s.Key, &s.Value, &s.CreatedAt, &s.UpdatedAt); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		secrets = append(secrets, s)
 	}
 
 	if err := json.NewEncoder(w).Encode(secrets); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -161,32 +167,32 @@ func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request
 
 	tx, err := h.db.Begin()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	res, err := tx.Exec(`DELETE FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		_ = tx.Rollback()
 		return
 	}
 
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		_ = tx.Rollback()
 		return
 	}
 
 	if rowsAffected == 0 {
-		http.Error(w, "No rows affected", http.StatusNotFound)
+		writeError(w, "No rows affected", http.StatusNotFound)
 		_ = tx.Rollback()
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -199,18 +205,18 @@ func (h *Handler) DeleteSecret(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := h.db.Begin()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	_, err = tx.Exec(`DELETE FROM secrets WHERE secret_name = ?`, secretName)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

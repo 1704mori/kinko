@@ -25,6 +25,8 @@ func main() {
 	authToken := flag.String("auth-token", "", "Authentication token (required)")
 	port := flag.Int("port", 8080, "Port number")
 	host := flag.String("host", "0.0.0.0", "Host address")
+	authUser := flag.String("auth-user", "admin", "Basic Auth username")
+	authPasswd := flag.String("auth-passwd", "admin", "Basic Auth password")
 
 	flag.Parse()
 
@@ -34,6 +36,18 @@ func main() {
 
 	if *authToken == "" {
 		*authToken = os.Getenv("API_TOKEN")
+	}
+
+	if *authUser == "" && os.Getenv("AUTH_USERNAME") == "" || *authPasswd == "" && os.Getenv("AUTH_PASSWD") == "" {
+		panic("flag auth-user and auth-passwd are required or set AUTH_USERNAME and AUTH_PASSWD environment variables")
+	}
+
+	if *authUser == "" {
+		*authUser = os.Getenv("AUTH_USERNAME")
+	}
+
+	if *authPasswd == "" {
+		*authPasswd = os.Getenv("AUTH_PASSWD")
 	}
 
 	config.NewCofig(&config.ConfigParams{
@@ -57,7 +71,16 @@ func main() {
 	}
 
 	r := router.New(log, db)
-	r.HandleFunc("GET /", SvelteKitHandler("/"))
+	r.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != *authUser || pass != *authPasswd {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		SvelteKitHandler("/")(w, r)
+	})
 
 	srv := &http.Server{
 		Addr:    config.Config.Host + ":" + strconv.Itoa(config.Config.Port),

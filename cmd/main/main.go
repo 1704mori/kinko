@@ -25,12 +25,12 @@ func main() {
 
 	flag.Parse()
 
-	if *authToken == "" && os.Getenv("KINKO_TOKEN") == "" {
-		panic("flag auth-token is required or set KINKO_TOKEN environment variable")
+	if *authToken == "" && os.Getenv("API_TOKEN") == "" {
+		panic("flag auth-token is required or set API_TOKEN environment variable")
 	}
 
 	if *authToken == "" {
-		*authToken = os.Getenv("KINKO_TOKEN")
+		*authToken = os.Getenv("API_TOKEN")
 	}
 
 	config.NewCofig(&config.ConfigParams{

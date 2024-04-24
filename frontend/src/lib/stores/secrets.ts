@@ -1,6 +1,6 @@
 import { writable, type Writable } from 'svelte/store';
 import type { Secret } from '$lib/typings';
-import { PUBLIC_KINKO_TOKEN, PUBLIC_KINKO_URL } from '$env/static/public';
+import { PUBLIC_API_TOKEN, PUBLIC_API_URL } from '$env/static/public';
 
 interface SecretsStore {
   secrets: Writable<Secret[]>;
@@ -11,8 +11,8 @@ function createSecretsStore(): SecretsStore {
   const secrets = writable<Secret[]>([]);
 
   const fetchSecrets = async (selectedSecret?: string): Promise<void> => {
-    const baseUrl = PUBLIC_KINKO_URL;
-    const token = PUBLIC_KINKO_TOKEN;
+    const baseUrl = PUBLIC_API_URL;
+    const token = PUBLIC_API_TOKEN;
     if (!baseUrl || !token) {
       console.error('API URL or token is missing');
       return;

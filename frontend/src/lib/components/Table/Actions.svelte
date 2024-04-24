@@ -8,7 +8,7 @@
 	import Button from '../Button.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { api } from '$lib/api';
-	import { PUBLIC_KINKO_TOKEN, PUBLIC_KINKO_URL } from '$env/static/public';
+	import { PUBLIC_API_TOKEN, PUBLIC_API_URL } from '$env/static/public';
 
 	export let data: Secret;
 
@@ -16,11 +16,11 @@
 
 	async function handleDelete() {
 		const [res, err] = await to(
-			api(`${PUBLIC_KINKO_URL}/api/v1/secret/${data.secret_name}asdasd?key=${data.key}`, {
+			api(`${PUBLIC_API_URL}/api/v1/secret/${data.secret_name}asdasd?key=${data.key}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: PUBLIC_KINKO_TOKEN
+					Authorization: PUBLIC_API_TOKEN
 				}
 			})
 		);

@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -54,6 +57,8 @@ func main() {
 	}
 
 	r := router.New(log, db)
+	r.HandleFunc("GET /", SvelteKitHandler("/"))
+
 	srv := &http.Server{
 		Addr:    config.Config.Host + ":" + strconv.Itoa(config.Config.Port),
 		Handler: r,
@@ -83,6 +88,22 @@ func main() {
 	}
 
 	log.Info("kinko stopped")
+}
+
+func SvelteKitHandler(path string) http.HandlerFunc {
+	filesystem := http.Dir("frontend/build")
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, path)
+		_, err := filesystem.Open(path)
+		if errors.Is(err, os.ErrNotExist) {
+			fmt.Printf("file not found at %s, trying %s.html\n", path, path)
+			path = fmt.Sprintf("%s.html", path)
+			fmt.Printf("new path: %s\n", path)
+		}
+		r.URL.Path = path
+		http.FileServer(filesystem).ServeHTTP(w, r)
+	}
 }
 
 func setupLog(env string) *slog.Logger {

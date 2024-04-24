@@ -24,7 +24,7 @@
 	)}
 >
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<form on:submit|preventDefault class="flex flex-col gap-4 p-4 w-full">
+	<form novalidate on:submit|preventDefault class="flex flex-col gap-4 p-4 w-full">
 		<div class="font-semibold">
 			<slot name="header" />
 		</div>

@@ -115,7 +115,7 @@
 	{/if}
 	{#if showOptions}
 		<div
-			class="flex flex-col gap-1 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-900 p-1 rounded-md absolute top-[calc(100%+1.5rem/2)] w-full z-50 shadow-lg"
+			class="flex flex-col gap-1 bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 p-1 rounded-md absolute top-[calc(100%+1.5rem/2)] w-full z-50 shadow-lg"
 			transition:fade={{
 				delay: 50,
 				duration: 100
@@ -131,7 +131,7 @@
 					type="button"
 					class={cn(
 						'flex items-center gap-1 px-2 py-1 hover:bg-neutral-200 dark:hover:bg-neutral-800 group rounded-md',
-						selectedOptions.find((o) => o.value === option.value) ? 'bg-neutral-50 dark:bg-neutral-950' : 'bg-neutral-50 dark:bg-neutral-950',
+						selectedOptions.find((o) => o.value === option.value) ? 'bg-neutral-200 dark:bg-neutral-800' : 'bg-neutral-50 dark:bg-black',
 						'h-8'
 					)}
 					on:click={() => selectOption(option, isSelected(option))}

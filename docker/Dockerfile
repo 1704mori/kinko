@@ -21,7 +21,7 @@ RUN npm install
 RUN npm run build
 
 RUN cp package.json package-lock.json /app/build/
-RUN cd /app/frontend.build && npm ci --omit=dev
+RUN cd /app/frontend/build && npm ci --omit=dev
 
 FROM node:20.12.2-alpine
 WORKDIR /app

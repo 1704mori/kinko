@@ -10,7 +10,7 @@
 	import Dialog from '$lib/components/Dialog.svelte';
 	import { submit } from '$lib/form';
 	import Input from '$lib/components/Input.svelte';
-	import { to } from '$lib/utils';
+	import { cn, to } from '$lib/utils';
 	import { api } from '$lib/api';
 	import { toast } from 'svelte-sonner';
 
@@ -59,9 +59,12 @@
 		<div slot="header">Secrets</div>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-xs uppercase">Select Secret</span>
+			<span class={cn('text-xs font-semibold uppercase')}>
+				Select Secret
+				<span class="font-normal italic text-red-500"></span>
+			</span>
 			<SelectSecret
-				required
+				required={!createNewSecret}
 				name={createNewSecret ? '' : 'secret_name'}
 				placeholder="Select Secret"
 				secrets={$secrets
@@ -90,17 +93,26 @@
 
 		{#if createNewSecret}
 			<div class="flex flex-col gap-1">
-				<span class="text-xs uppercase">Secret Name</span>
+				<span class={cn('text-xs font-semibold uppercase')}>
+					Secret Name
+					<span class="font-normal italic text-red-500"></span>
+				</span>
 				<Input name="secret_name" type="text" placeholder="Secret Name" />
 			</div>
 		{/if}
 
 		<div class="flex flex-col gap-1">
-			<span class="text-xs uppercase">Key</span>
+			<span class={cn('text-xs font-semibold uppercase')}>
+				Key
+				<span class="font-normal italic text-red-500"></span>
+			</span>
 			<Input required name="key" type="text" placeholder="Key" />
 		</div>
 		<div class="flex flex-col gap-1">
-			<span class="text-xs uppercase">Value</span>
+			<span class={cn('text-xs font-semibold uppercase')}>
+				Value
+				<span class="font-normal italic text-red-500"></span>
+			</span>
 			<Input required name="value" type="text" placeholder="Value" />
 		</div>
 

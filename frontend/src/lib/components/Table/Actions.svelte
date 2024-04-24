@@ -5,10 +5,10 @@
 	import Icon from '../icons/Icon.svelte';
 	import Trash from '../icons/Trash.svelte';
 	import Dialog from '../Dialog.svelte';
-	import { apiToken, apiUrl } from '$lib';
 	import Button from '../Button.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { PUBLIC_KINKO_TOKEN, PUBLIC_KINKO_URL } from '$env/static/public';
 
 	export let data: Secret;
 
@@ -16,12 +16,12 @@
 
 	async function handleDelete() {
 		const [res, err] = await to(
-			api(`${$apiUrl}/api/v1/secret/${data.secret_name}asdasd?key=${data.key}`, {
+			api(`${PUBLIC_KINKO_URL}/api/v1/secret/${data.secret_name}asdasd?key=${data.key}`, {
 				method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': $apiToken,
-        },
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: PUBLIC_KINKO_TOKEN
+				}
 			})
 		);
 
@@ -31,7 +31,7 @@
 		}
 
 		toast.success('Secret deleted successfully');
-    await invalidateAll();
+		await invalidateAll();
 	}
 </script>
 

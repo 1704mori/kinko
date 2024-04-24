@@ -129,6 +129,12 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 		secrets = append(secrets, s)
 	}
 
+	if len(secrets) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`[]`))
+		return
+	}
+
 	if err := json.NewEncoder(w).Encode(secrets); err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return

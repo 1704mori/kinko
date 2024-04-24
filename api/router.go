@@ -12,9 +12,9 @@ import (
 
 func New(log *slog.Logger, db *sql.DB) *routegroup.Bundle {
 	router := routegroup.New(http.NewServeMux())
+	router.Use(middleware.Cors, middleware.ServeJSON, middleware.Auth)
 
 	v1Router := router.Mount("/api/v1")
-	v1Router.Use(middleware.Cors, middleware.ServeJSON, middleware.Auth)
 
 	secretRouter := v1Router.Mount("/secret")
 	secretHandler := secret.NewHandler(db)

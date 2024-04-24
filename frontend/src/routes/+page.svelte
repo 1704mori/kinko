@@ -10,6 +10,9 @@
 	import Dialog from '$lib/components/Dialog.svelte';
 	import { submit } from '$lib/form';
 	import Input from '$lib/components/Input.svelte';
+	import { to } from '$lib/utils';
+	import { api } from '$lib/api';
+	import { toast } from 'svelte-sonner';
 
 	let selectedSecret: string | null = null;
 	let showCreateDialog = false;
@@ -30,8 +33,24 @@
 		secret_name: string;
 		key: string;
 		value: string;
-	}>(async (data) => {
-		console.log(data);
+	}>(async ({ secret_name, key, value }) => {
+		const [res, err] = await to(
+			api(`/secret/${secret_name}`, {
+				method: 'PUT',
+				body: JSON.stringify({
+					[key]: value,
+				})
+			})
+		);
+
+		if (err) {
+			toast.error(err.message);
+			return;
+		}
+
+		toast.success('Secret created/updated successfully');
+		showCreateDialog = false;
+		fetchSecrets();
 	});
 </script>
 
@@ -42,6 +61,7 @@
 		<div class="flex flex-col gap-1">
 			<span class="text-xs uppercase">Select Secret</span>
 			<SelectSecret
+				required
 				name={createNewSecret ? '' : 'secret_name'}
 				placeholder="Select Secret"
 				secrets={$secrets
@@ -77,11 +97,11 @@
 
 		<div class="flex flex-col gap-1">
 			<span class="text-xs uppercase">Key</span>
-			<Input name="key" type="text" placeholder="Key" />
+			<Input required name="key" type="text" placeholder="Key" />
 		</div>
 		<div class="flex flex-col gap-1">
 			<span class="text-xs uppercase">Value</span>
-			<Input name="value" type="text" placeholder="Value" />
+			<Input required name="value" type="text" placeholder="Value" />
 		</div>
 
 		<div slot="footer">

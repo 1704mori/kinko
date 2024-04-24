@@ -6,9 +6,8 @@
 	import Trash from '../icons/Trash.svelte';
 	import Dialog from '../Dialog.svelte';
 	import Button from '../Button.svelte';
-	import { invalidateAll } from '$app/navigation';
 	import { api } from '$lib/api';
-	import { PUBLIC_API_TOKEN, PUBLIC_API_URL } from '$env/static/public';
+	import { fetchSecrets } from '$lib/stores/secrets';
 
 	export let data: Secret;
 
@@ -16,12 +15,8 @@
 
 	async function handleDelete() {
 		const [res, err] = await to(
-			api(`${PUBLIC_API_URL}/api/v1/secret/${data.secret_name}asdasd?key=${data.key}`, {
+			api(`/secret/${data.secret_name}?key=${data.key}`, {
 				method: 'DELETE',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: PUBLIC_API_TOKEN
-				}
 			})
 		);
 
@@ -31,7 +26,7 @@
 		}
 
 		toast.success('Secret deleted successfully');
-		await invalidateAll();
+		fetchSecrets();
 	}
 </script>
 

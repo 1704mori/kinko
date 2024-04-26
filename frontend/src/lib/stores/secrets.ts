@@ -18,7 +18,7 @@ function createSecretsStore(): SecretsStore {
       return;
     }
 
-    let url = `${baseUrl}/api/v1/secrets?offset=0&limit=10`;
+    let url = `${baseUrl}/api/v1/secrets?offset=0&limit=100`;
     if (selectedSecret) {
       url += `&secret_name=${encodeURIComponent(selectedSecret)}`;
     }

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,14 +14,20 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
+
 	router "github.com/1704mori/kinko/api"
 	"github.com/1704mori/kinko/internal/config"
 	slogpretty "github.com/1704mori/kinko/internal/log"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
-	authToken := flag.String("auth-token", "", "Authentication token (required)")
+	authToken := flag.String(
+		"auth-token",
+		"",
+		"Authentication token (required)",
+	)
+	encKey := flag.String("enc-key", "", "Encryption key (required)")
 	port := flag.Int("port", 8080, "Port number")
 	host := flag.String("host", "0.0.0.0", "Host address")
 	authUser := flag.String("auth-user", "", "Basic Auth username")
@@ -31,15 +36,28 @@ func main() {
 	flag.Parse()
 
 	if *authToken == "" && os.Getenv("API_TOKEN") == "" {
-		panic("flag auth-token is required or set API_TOKEN environment variable")
+		panic(
+			"flag auth-token is required or set API_TOKEN environment variable",
+		)
 	}
 
 	if *authToken == "" {
 		*authToken = os.Getenv("API_TOKEN")
 	}
 
-	if *authUser == "" && os.Getenv("AUTH_USERNAME") == "" || *authPasswd == "" && os.Getenv("AUTH_PASSWD") == "" {
-		panic("flag auth-user and auth-passwd are required or set AUTH_USERNAME and AUTH_PASSWD environment variables")
+	if *encKey == "" && os.Getenv("ENC_KEY") == "" {
+		panic("flag enc-key is required or set ENC_KEY environment variable")
+	}
+
+	if *encKey == "" {
+		*encKey = os.Getenv("ENC_KEY")
+	}
+
+	if *authUser == "" && os.Getenv("AUTH_USERNAME") == "" ||
+		*authPasswd == "" && os.Getenv("AUTH_PASSWD") == "" {
+		panic(
+			"flag auth-user and auth-passwd are required or set AUTH_USERNAME and AUTH_PASSWD environment variables",
+		)
 	}
 
 	if *authUser == "" {
@@ -52,12 +70,14 @@ func main() {
 
 	config.NewCofig(&config.ConfigParams{
 		AuthToken: *authToken,
+		EncKey:    *encKey,
 		Env:       "dev",
 		Host:      *host,
 		Port:      *port,
 	})
 
-	log := setupLog(config.Config.Env)
+	// log := setupLog(config.Config.Env)
+	log := slogpretty.Log()
 	log.Info("config", "config", config.Config)
 	db, err := sql.Open("sqlite3", "./kinko.db")
 	if err != nil {
@@ -129,32 +149,38 @@ func SvelteKitHandler(path string) http.HandlerFunc {
 	}
 }
 
-func setupLog(env string) *slog.Logger {
-	var log *slog.Logger
-
-	switch env {
-	case "dev":
-		opts := slogpretty.PrettyHandlerOptions{
-			SlogOpts: &slog.HandlerOptions{
-				Level: slog.LevelDebug,
-			},
-		}
-
-		handler := opts.NewPrettyHandler(os.Stdout)
-
-		log = slog.New(handler)
-	case "prod":
-		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
-		)
-	default:
-		log = slog.New(
-			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
-		)
-	}
-
-	return log
-}
+// func setupLog(env string) *slog.Logger {
+// 	var log *slog.Logger
+//
+// 	switch env {
+// 	case "dev":
+// 		opts := slogpretty.PrettyHandlerOptions{
+// 			SlogOpts: &slog.HandlerOptions{
+// 				Level: slog.LevelDebug,
+// 			},
+// 		}
+//
+// 		handler := opts.NewPrettyHandler(os.Stdout)
+//
+// 		log = slog.New(handler)
+// 	case "prod":
+// 		log = slog.New(
+// 			slog.NewJSONHandler(
+// 				os.Stdout,
+// 				&slog.HandlerOptions{Level: slog.LevelInfo},
+// 			),
+// 		)
+// 	default:
+// 		log = slog.New(
+// 			slog.NewJSONHandler(
+// 				os.Stdout,
+// 				&slog.HandlerOptions{Level: slog.LevelInfo},
+// 			),
+// 		)
+// 	}
+//
+// 	return log
+// }
 
 func prepareDB(db *sql.DB) error {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS secrets (

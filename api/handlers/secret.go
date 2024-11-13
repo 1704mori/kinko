@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+
+	"github.com/1704mori/kinko/internal/encryption"
+	slogpretty "github.com/1704mori/kinko/internal/log"
 )
 
 type Handler struct {
@@ -50,12 +53,32 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 
 	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	for key, value := range secrets {
+		encryptedValue, err := encryption.Encrypt(value)
+		if err != nil {
+			slogpretty.Log().Warn("encryption", "err", err)
+			writeError(
+				w,
+				"Failed to encrypt value, check the logs for more information.",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
 		var id string
-		err := tx.QueryRow(`SELECT id FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key).Scan(&id)
+		err = tx.QueryRow(`SELECT id FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key).
+			Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				id = ulid.Make().String()
-				_, err = tx.Exec(`INSERT INTO secrets (id, secret_name, key, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`, id, secretName, key, value, time.Now(), time.Now())
+				_, err = tx.Exec(
+					`INSERT INTO secrets (id, secret_name, key, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+					id,
+					secretName,
+					key,
+					encryptedValue,
+					time.Now(),
+					time.Now(),
+				)
 				if err != nil {
 					writeError(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -66,7 +89,12 @@ func (h *Handler) AddSecret(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, err = tx.Exec(`UPDATE secrets SET value = ?, updated_at = ? WHERE id = ?`, value, time.Now(), id)
+		_, err = tx.Exec(
+			`UPDATE secrets SET value = ?, updated_at = ? WHERE id = ?`,
+			encryptedValue,
+			time.Now(),
+			id,
+		)
 		if err != nil {
 			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -100,7 +128,12 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 
 	var rows *sql.Rows
 	if secretName != "" {
-		rows, err = h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ? ORDER BY secret_name LIMIT ? OFFSET ?`, secretName, limit, offset)
+		rows, err = h.db.Query(
+			`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ? ORDER BY secret_name LIMIT ? OFFSET ?`,
+			secretName,
+			limit,
+			offset,
+		)
 		if err != nil {
 			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -126,6 +159,19 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		decryptedValue, err := encryption.Decrypt(s.Value)
+		if err != nil {
+			slogpretty.Log().Warn("encryption", "err", err)
+			writeError(
+				w,
+				"Failed to decrypt value, check logs for more information.",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		s.Value = decryptedValue
 		secrets = append(secrets, s)
 	}
 
@@ -144,7 +190,10 @@ func (h *Handler) GetAllSecrets(w http.ResponseWriter, r *http.Request) {
 // curl -X GET http://localhost:8080/api/v1/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
 func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
-	rows, err := h.db.Query(`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ?`, secretName)
+	rows, err := h.db.Query(
+		`SELECT id, secret_name, key, value, created_at, updated_at FROM secrets WHERE secret_name = ?`,
+		secretName,
+	)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -158,6 +207,19 @@ func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 			writeError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		decryptedValue, err := encryption.Decrypt(s.Value)
+		if err != nil {
+			slogpretty.Log().Warn("encryption", "err", err)
+			writeError(
+				w,
+				"Failed to decrypt value, check logs for more information.",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		s.Value = decryptedValue
 		secrets = append(secrets, s)
 	}
 
@@ -168,7 +230,10 @@ func (h *Handler) GetSecret(w http.ResponseWriter, r *http.Request) {
 }
 
 // curl -X DELETE http://localhost:8080/api/v1/secret/secretName?key=key -H "Content-Type: application/json" -H "Authorization: token"
-func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteSecretKeyAndValue(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	secretName := strings.TrimPrefix(r.URL.Path, "/api/v1/secret/")
 	key := r.URL.Query().Get("key")
 
@@ -178,7 +243,11 @@ func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	res, err := tx.Exec(`DELETE FROM secrets WHERE secret_name = ? AND key = ?`, secretName, key)
+	res, err := tx.Exec(
+		`DELETE FROM secrets WHERE secret_name = ? AND key = ?`,
+		secretName,
+		key,
+	)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		_ = tx.Rollback()
@@ -204,7 +273,8 @@ func (h *Handler) DeleteSecretKeyAndValue(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Secret key and value deleted"})
+	json.NewEncoder(w).
+		Encode(map[string]string{"message": "Secret key and value deleted"})
 }
 
 // curl -X POST http://localhost:8080/api/v1/secret/secretName -H "Content-Type: application/json" -H "Authorization: token"
